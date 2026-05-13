@@ -37,13 +37,13 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                     sh """
-                    docker login $NEXUS_URL -u $USER -p $PASS
+                    echo $PASS | docker login $NEXUS_URL -u $USER --password-stdin
                     """
                 }
             }
         }
 
-        stage('Push to Nexus') {
+        stage('Push Image to Nexus') {
             steps {
                 sh """
                 docker push $NEXUS_URL/$NEXUS_REPO/$IMAGE_NAME:latest
@@ -53,13 +53,13 @@ pipeline {
 
         stage('Stop Old Container') {
             steps {
-                sh '''
+                sh """
                 docker rm -f $CONTAINER_NAME || true
-                '''
+                """
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Run New Container') {
             steps {
                 sh """
                 docker run -d \
@@ -70,10 +70,19 @@ pipeline {
             }
         }
 
-        stage('Check Running Containers') {
+        stage('Verify Running Containers') {
             steps {
-                sh 'docker ps'
+                sh "docker ps"
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline executed successfully 🚀"
+        }
+        failure {
+            echo "Pipeline failed ❌ Check logs"
         }
     }
 }
